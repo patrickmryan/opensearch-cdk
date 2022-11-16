@@ -66,18 +66,16 @@ class OssStack(Stack):
         domain = oss.Domain(
             self,
             "OssDomain",
-            version=oss.EngineVersion.OPENSEARCH_1_3,
+            version=oss.EngineVersion.open_search("2.3"),  #    OPENSEARCH_1_3,
             ebs=oss.EbsOptions(volume_size=100),
             node_to_node_encryption=True,
             encryption_at_rest=oss.EncryptionAtRestOptions(enabled=True),
             vpc=vpc,
             # vpc_subnets={ subnet.subnet_id: subnet.subnet_id for subnet in subnets },
-            # vpc_subnets=[ec2.SubnetSelection(subnets=subnets, availability_zones=['us-east-1c'])],
-            vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
-            # security_groups=[
-            #     ec2.SecurityGroup.from_lookup_by_name(self, "sg" + name, name, vpc)
-            #     for name in security_group_names
-            # ],
+            vpc_subnets=[
+                ec2.SubnetSelection(subnets=subnets, availability_zones=["us-east-1c"])
+            ],
+            # vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
             security_groups=[security_group],
             capacity=oss.CapacityConfig(
                 data_node_instance_type="t3.small.search", data_nodes=1
