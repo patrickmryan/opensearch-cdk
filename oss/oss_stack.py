@@ -42,7 +42,7 @@ class OssStack(Stack):
         vpc_name = self.node.try_get_context("VpcName")
         vpc = ec2.Vpc.from_lookup(self, "Vpc", tags={"Name": vpc_name})
 
-        security_group_names = self.node.try_get_context("SecurityGroupNames")
+        # security_group_names = self.node.try_get_context("SecurityGroupNames")
 
         vpc_resource = self.ec2_resource.Vpc(vpc.vpc_id)
 
@@ -51,6 +51,11 @@ class OssStack(Stack):
             tag_key="SubnetType",
             tag_value="private",
             prefix="Data",
+        )
+
+        security_group = ec2.SecurityGroup(self, "OssDomainSG", vpc=vpc)
+        security_group.add_ingress_rule(
+            ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.all_traffic()
         )
 
         domain_security = oss.AdvancedSecurityOptions(
@@ -67,11 +72,13 @@ class OssStack(Stack):
             encryption_at_rest=oss.EncryptionAtRestOptions(enabled=True),
             vpc=vpc,
             # vpc_subnets={ subnet.subnet_id: subnet.subnet_id for subnet in subnets },
-            vpc_subnets=[ec2.SubnetSelection(subnets=subnets)],
-            security_groups=[
-                ec2.SecurityGroup.from_lookup_by_name(self, "sg" + name, name, vpc)
-                for name in security_group_names
-            ],
+            # vpc_subnets=[ec2.SubnetSelection(subnets=subnets, availability_zones=['us-east-1c'])],
+            vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
+            # security_groups=[
+            #     ec2.SecurityGroup.from_lookup_by_name(self, "sg" + name, name, vpc)
+            #     for name in security_group_names
+            # ],
+            security_groups=[security_group],
             capacity=oss.CapacityConfig(
                 data_node_instance_type="t3.small.search", data_nodes=1
             ),
