@@ -55,7 +55,7 @@ class OssStack(Stack):
 
         security_group = ec2.SecurityGroup(self, "OssDomainSG", vpc=vpc)
         security_group.add_ingress_rule(
-            ec2.Peer.ipv4("10.0.0.0/16"), ec2.Port.all_traffic()
+            ec2.Peer.ipv4("10.0.0.0/8"), ec2.Port.all_traffic()
         )
 
         domain_security = oss.AdvancedSecurityOptions(
