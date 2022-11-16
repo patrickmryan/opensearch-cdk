@@ -8,11 +8,14 @@ from aws_cdk import (
     aws_ec2 as ec2,
 )
 from constructs import Construct
+import boto3
 
 
 class OssStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        self.ec2_resource = boto3.resource("ec2")
 
         permissions_boundary_policy_arn = self.node.try_get_context(
             "PermissionsBoundaryPolicyArn"
@@ -41,6 +44,15 @@ class OssStack(Stack):
 
         security_group_names = self.node.try_get_context("SecurityGroupNames")
 
+        vpc_resource = self.ec2_resource.Vpc(vpc.vpc_id)
+
+        subnets = self.get_subnets_tagged(
+            vpc=vpc_resource,
+            tag_key="SubnetType",
+            tag_value="private",
+            prefix="Data",
+        )
+
         domain_security = oss.AdvancedSecurityOptions(
             master_user_name="master",
             master_user_password=SecretValue.unsafe_plain_text("Mast3r!!"),
@@ -54,6 +66,8 @@ class OssStack(Stack):
             node_to_node_encryption=True,
             encryption_at_rest=oss.EncryptionAtRestOptions(enabled=True),
             vpc=vpc,
+            # vpc_subnets={ subnet.subnet_id: subnet.subnet_id for subnet in subnets },
+            vpc_subnets=[ec2.SubnetSelection(subnets=subnets)],
             security_groups=[
                 ec2.SecurityGroup.from_lookup_by_name(self, "sg" + name, name, vpc)
                 for name in security_group_names
@@ -70,3 +84,27 @@ class OssStack(Stack):
         #     "MasterPassword",
         #     value=domain_security.master_user_password.unsafePlainText,
         # )
+
+    def get_subnets_tagged(
+        self, vpc=None, tag_key=None, tag_value=None, min_addresses=0, prefix=""
+    ):
+
+        subnets = []
+        for subnet in vpc.subnets.all():
+            tags = {tag["Key"]: tag["Value"] for tag in subnet.tags}  # dict-ify
+
+            if min_addresses and subnet.available_ip_address_count < min_addresses:
+                continue
+
+            if tags[tag_key] != tag_value:
+                continue
+
+            subnets.append(
+                ec2.Subnet.from_subnet_id(
+                    self,
+                    prefix + subnet.subnet_id,
+                    subnet.subnet_id,
+                )
+            )
+
+        return subnets
