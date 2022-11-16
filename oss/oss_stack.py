@@ -86,6 +86,14 @@ class OssStack(Stack):
             fine_grained_access_control=domain_security,
         )
 
+        domain.add_access_policies(
+            iam.PolicyStatement(
+                principals=[iam.AnyPrincipal()],
+                actions=["es:*"],
+                resources=[f"{domain.domain_arn}/*"],
+            )
+        )
+
         # CfnOutput(
         #     self,
         #     "MasterPassword",
