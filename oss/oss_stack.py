@@ -71,11 +71,10 @@ class OssStack(Stack):
             node_to_node_encryption=True,
             encryption_at_rest=oss.EncryptionAtRestOptions(enabled=True),
             vpc=vpc,
-            # vpc_subnets={ subnet.subnet_id: subnet.subnet_id for subnet in subnets },
-            vpc_subnets=[
-                ec2.SubnetSelection(subnets=subnets, availability_zones=["us-east-1c"])
-            ],
-            # vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
+            # vpc_subnets=[
+            #     ec2.SubnetSelection(subnets=subnets, availability_zones=["us-east-1c"])
+            # ],
+            vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
             security_groups=[security_group],
             capacity=oss.CapacityConfig(
                 data_node_instance_type="t3.small.search", data_nodes=1
@@ -91,12 +90,6 @@ class OssStack(Stack):
                 resources=[f"{domain.domain_arn}/*"],
             )
         )
-
-        # CfnOutput(
-        #     self,
-        #     "MasterPassword",
-        #     value=domain_security.master_user_password.unsafePlainText,
-        # )
 
     def get_subnets_tagged(
         self, vpc=None, tag_key=None, tag_value=None, min_addresses=0, prefix=""
