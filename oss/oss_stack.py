@@ -39,23 +39,56 @@ class OssStack(Stack):
             )
             iam.PermissionsBoundary.of(self).apply(policy)
 
-        vpc_name = self.node.try_get_context("VpcName")
-        vpc = ec2.Vpc.from_lookup(self, "Vpc", tags={"Name": vpc_name})
+        cidr_range = "10.0.0.0/16"
+        subnet_configs = []
+        subnet_cidr_mask = 24
+
+        subnet_configs.append(
+            ec2.SubnetConfiguration(
+                name="Private",
+                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
+                cidr_mask=subnet_cidr_mask,
+            )
+        )
+        subnet_configs.append(
+            ec2.SubnetConfiguration(
+                name="Public",
+                subnet_type=ec2.SubnetType.PUBLIC,
+                cidr_mask=subnet_cidr_mask,
+            )
+        )
+
+        # vpc_name = self.node.try_get_context("VpcName")
+        # vpc = ec2.Vpc.from_lookup(self, "Vpc", tags={"Name": vpc_name})
 
         # security_group_names = self.node.try_get_context("SecurityGroupNames")
 
-        vpc_resource = self.ec2_resource.Vpc(vpc.vpc_id)
+        availability_zones = ["us-east-1a, us-east-1b"]
 
-        subnets = self.get_subnets_tagged(
-            vpc=vpc_resource,
-            tag_key="SubnetType",
-            tag_value="private",
-            prefix="Data",
+        vpc = ec2.Vpc(
+            self,
+            "Vpc",
+            ip_addresses=ec2.IpAddresses.cidr(cidr_range),
+            enable_dns_hostnames=True,
+            enable_dns_support=True,
+            # max_azs=2,
+            nat_gateway_provider=ec2.NatProvider.gateway(),
+            subnet_configuration=subnet_configs,
+            availability_zones=availability_zones,
         )
+
+        # vpc_resource = self.ec2_resource.Vpc(vpc.vpc_id)
+
+        # subnets = self.get_subnets_tagged(
+        #     vpc=vpc_resource,
+        #     tag_key="SubnetType",
+        #     tag_value="private",
+        #     prefix="Data",
+        # )
 
         security_group = ec2.SecurityGroup(self, "OssDomainSG", vpc=vpc)
         security_group.add_ingress_rule(
-            ec2.Peer.ipv4("10.0.0.0/8"), ec2.Port.all_traffic()
+            ec2.Peer.ipv4(cidr_range), ec2.Port.all_traffic()
         )
 
         domain_security = oss.AdvancedSecurityOptions(
@@ -71,14 +104,18 @@ class OssStack(Stack):
             node_to_node_encryption=True,
             encryption_at_rest=oss.EncryptionAtRestOptions(enabled=True),
             vpc=vpc,
-            # vpc_subnets=[
-            #     ec2.SubnetSelection(subnets=subnets, availability_zones=["us-east-1c"])
-            # ],
-            vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
+            vpc_subnets=[
+                ec2.SubnetSelection(
+                    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
+                    availability_zones=availability_zones[0:1],
+                )
+            ],
+            # vpc_subnets=[{"aSubnet": "subnet-0f360a0e465712c55"}],
             security_groups=[security_group],
             capacity=oss.CapacityConfig(
                 data_node_instance_type="t3.small.search", data_nodes=1
             ),
+            tls_security_policy=oss.TLSSecurityPolicy.TLS_1_2,
             enforce_https=True,
             fine_grained_access_control=domain_security,
         )
@@ -91,26 +128,26 @@ class OssStack(Stack):
             )
         )
 
-    def get_subnets_tagged(
-        self, vpc=None, tag_key=None, tag_value=None, min_addresses=0, prefix=""
-    ):
+    # def get_subnets_tagged(
+    #     self, vpc=None, tag_key=None, tag_value=None, min_addresses=0, prefix=""
+    # ):
 
-        subnets = []
-        for subnet in vpc.subnets.all():
-            tags = {tag["Key"]: tag["Value"] for tag in subnet.tags}  # dict-ify
+    #     subnets = []
+    #     for subnet in vpc.subnets.all():
+    #         tags = {tag["Key"]: tag["Value"] for tag in subnet.tags}  # dict-ify
 
-            if min_addresses and subnet.available_ip_address_count < min_addresses:
-                continue
+    #         if min_addresses and subnet.available_ip_address_count < min_addresses:
+    #             continue
 
-            if tags[tag_key] != tag_value:
-                continue
+    #         if tags[tag_key] != tag_value:
+    #             continue
 
-            subnets.append(
-                ec2.Subnet.from_subnet_id(
-                    self,
-                    prefix + subnet.subnet_id,
-                    subnet.subnet_id,
-                )
-            )
+    #         subnets.append(
+    #             ec2.Subnet.from_subnet_id(
+    #                 self,
+    #                 prefix + subnet.subnet_id,
+    #                 subnet.subnet_id,
+    #             )
+    #         )
 
-        return subnets
+    #     return subnets
