@@ -33,5 +33,13 @@
   "security-group:account=458358814065:region=us-east-1:securityGroupName=socc-dev-internal:vpcId=vpc-0a4848826921a0683": {
     "securityGroupId": "sg-07d35f2028d6f73d1",
     "allowAllOutbound": false
-  }
+  },
+  "availability-zones:account=286367598331:region=us-east-1": [
+    "us-east-1a",
+    "us-east-1b",
+    "us-east-1c",
+    "us-east-1d",
+    "us-east-1e",
+    "us-east-1f"
+  ]
 }

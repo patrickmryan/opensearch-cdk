@@ -15,9 +15,8 @@
     ]
   },
   "context": {
-    "PermissionsBoundaryPolicyName": "T_PROJADMIN_U",
-    "VpcName": "socc-dev",
-    "SecurityGroupNames": ["socc-dev-internal"],
+    "PermissionsBoundaryPolicyName": "",
+    "CidrRange": "10.0.0.0/16",
 
     "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
     "@aws-cdk/core:stackRelativeExports": true,
